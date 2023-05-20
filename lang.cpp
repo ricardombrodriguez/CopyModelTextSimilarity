@@ -31,7 +31,6 @@ class CopyModel
 		float alpha;			// smoothning factor
 		float threshold;		// minimum performance of the model
 		int file_length;		// length of the file
-		string output_file;		// file to output the runs
 
 		/**
 		*  structs
@@ -52,21 +51,24 @@ class CopyModel
 		*	- Open file
 		*	- Calculate file length
 		*/
-		CopyModel(string filename, int k, float alpha, float threshold, string output_file)
+		CopyModel(string filename, int k, float alpha, float threshold)
 		{
 			
+            /* Initialize all structure input parameters */
 			this->filename = filename;				
 			this->k = k;						
 			this->alpha = alpha;					
-			this->threshold = threshold;			
-			this->output_file = output_file;	
+			this->threshold = threshold;		
 			this->pointer = 0;
 
+            /* Open file pointer (or exit if there's an error) */
 			this->file.open(filename);
 			if (!this->file .is_open()) {
 				cout << "[ERROR] Can't open file '" << filename << "'" << endl;
 				exit(EXIT_FAILURE);
 			}
+
+            /* Get file length */
 			this->file.seekg(0, ios::end);
 			this->file_length = this->file.tellg();
 			this->file.seekg(0, ios::beg);
@@ -127,36 +129,33 @@ class CopyModel
 		void start()
 		{
 
-			char ch;		
-			vector<char> sliding_window;
-			string seq;
-			char next_character;
-			char next_character_prevision;
-			int Nh = 0, Nf = 0;
-			int cur_Nh = 0, cur_Nf = 0;
+            char ch;                        // Current char
+            vector<char> full_sequence;     // Vector that stores all the file characters, in order to retrieve the next character after a sequence, given the position
+			string seq;                     // Sequence (in a string format) from the sliding window
+			char next_character;            // Next character (real one, for comparison)
+			char next_character_prevision;  // Next character (predicted one)   
+			int Nh = 0, Nf = 0;             // Number of hits and number of fails
+			int cur_Nh = 0, cur_Nf = 0;     // Current number of hits and current number of fails
 
-
-			this->exec_time = clock();
-
+            // While the file is no fully processed
 			while (!this->file.eof()) {
 
-				this->file.get(ch);
-				sliding_window.push_back(ch);
+				this->file.get(ch);             // Get the unread character from the file 
+                full_sequence.push_back(ch);    // Push the character to the full sequence vector
 
-				if (sliding_window.size() == k+1)													// build a k-size window
-				{
-					sliding_window.erase(sliding_window.begin(), sliding_window.begin() + 1);		// update window
-					string seq(sliding_window.begin(), sliding_window.end());						// convert window buffer to string
+                /* If the full sequence vector has, at least, k characters to form a sequence */
+                if (full_sequence.size() >= k) {
 
-					if (!this->file.get(next_character)) {
-						break;																		// can't construct a window (file has less than k chars)
+                    string seq(full_sequence.end() - k, full_sequence.end());   // Get the k-char sliding window / sequence
+
+                    if (!this->file.get(next_character)) {                  // Can't construct a window (file has less than k chars)
+						break;									
 					}
 
-					if (this->sequences_lookahead.count(seq) < 1) { 								// sequence not in probability table
+					if (this->sequences_lookahead.count(seq) < 1) { 		// Sequence not in probability table
 						this->sequences_lookahead.insert({seq, {}});	
 					} else {
-					
-						next_character_prevision = get_next_character_prediction(seq);				// get character prevision and increment respective fail / hit counter
+						next_character_prevision = get_next_character_prediction(seq);      // Get character prevision and increment respective fail / hit counter
 						if (next_character == next_character_prevision) {
 							this->sequences_lookahead[seq][next_character_prevision].numHits += 1;
 							cur_Nh++;
@@ -168,8 +167,6 @@ class CopyModel
 						calculate_probability(seq, next_character_prevision);						// after updating hits and fails, recalculate char probability
 						this->accuracy = ((float)cur_Nh) / (cur_Nh + cur_Nf);						// recalculate model accuracy
 
-
-						
 						if (this->accuracy < this->threshold) {										// if model below threshold
 							Nh += cur_Nh;															// reset params
 							Nf += cur_Nf;
@@ -184,10 +181,12 @@ class CopyModel
 						this->sequences_lookahead[seq][next_character] = charInit;
 						calculate_probability(seq, next_character);
 					}
-				} 
-				
-				this->file.seekg(++this->pointer, ios::beg);	// Increments pointer for next iteration (sliding-window)	
-			}
+
+                }
+
+                this->file.seekg(++this->pointer, ios::beg);	// Increments pointer for next iteration (sliding-window)	
+
+            }
 
 
 			/**
@@ -197,69 +196,99 @@ class CopyModel
 			this->n_bits = -log(this->accuracy)/log(2);
 			this->expected_total_bits = this->n_bits * this->file_length;
 
-			this->exec_time =  float (clock() - this->exec_time);
-		}	
+            cout << "accuracy: " << this->accuracy << endl;
+            cout << "n_bits: " << this->n_bits << endl;
+            cout << "expected_total_bits: " << this->expected_total_bits << endl;
 
-		/**
-		*	Export run to file for further analysis
-		*/
-		void export_run(string filename) {
-			ofstream out;
-			out.open (filename);
-			out << "file : " << this->filename << endl;
-			out << "k : " << this->k << endl;
-			out << "alpha : " << this->alpha << endl;
-			out << "prob : " << this->accuracy << endl;
-			out << "bits : " << this->n_bits << endl;
-			out << "total_bits : " << this->expected_total_bits << endl;
-			out << "time : " << this->exec_time << endl;
-			out.close();
-		}
+        }
 
+        /* Estimate the total number of bits of t (analysis file), using the computed model from Ri (representation file) */
+        void process_analysis_file(string analysis_filename) {
 
-		/**
-		*	Export probability table for text generation
-		*/
-		void export_model(string filename) {
-			ofstream out;
-
-			out.open(filename);
-
-			for ( auto const&p : this->sequences_lookahead) {
-				string seq = p.first;
-				out << seq << endl;
-				for ( auto const &m : this->sequences_lookahead[seq] ) {
-					out << m.first << " " << m.second.prob << endl;
-				}
-				out << endl;
+            /* Open file pointer (or exit if there's an error) */
+			ifstream file;
+            file.open(analysis_filename);
+			if (!file.is_open()) {
+				cout << "[ERROR] Can't open analysis file '" << filename << "'" << endl;
+				exit(EXIT_FAILURE);
 			}
-			out.close();
-		}
+
+            char ch;                        // Current char
+            vector<char> sliding_window;    // Vector that stores all the file characters, in order to retrieve the next character after a sequence, given the position
+			string seq;                     // Sequence (in a string format) from the sliding window
+			char next_character;            // Next character (real one, for comparison)
+			char next_character_prevision;  // Next character (predicted one)   
+			int Nh = 0, Nf = 0;             // Number of hits and number of fails
+            pointer = 0;
+
+            while (!file.eof()) {
+
+				file.get(ch);                    // Get the unread character from the file 
+                sliding_window.push_back(ch);    // Push the character to the sliding window vector
+
+                if (sliding_window.size() == k) {
+
+					string seq(sliding_window.begin(), sliding_window.end());
+
+                    if (!file.get(next_character)) {                  // Can't construct a window (file has less than k chars)
+						break;									
+					}
+
+                    if (this->sequences_lookahead.count(seq) > 0) {
+
+                        next_character_prevision = get_next_character_prediction(seq);      // Get character prevision and increment respective fail / hit counter
+                        if (next_character == next_character_prevision) {
+                            Nh++;
+                        } else {
+                            Nf++;
+                        }
+                    }
+
+                    sliding_window.erase(sliding_window.begin(), sliding_window.begin() + 1);		
+
+                }
+
+                file.seekg(++pointer, ios::beg);	// Increments pointer for next iteration (sliding-window)	
+
+            }
+
+            /**
+			*	Calculate metrics
+			*/
+			accuracy = ((float)Nh) / (Nh + Nf);
+			n_bits = -log(accuracy)/log(2);
+			expected_total_bits = n_bits * file_length;
+
+            cout << "accuracy: " << accuracy << endl;
+            cout << "n_bits: " << n_bits << endl;
+            cout << "expected_total_bits: " << expected_total_bits << endl;
+
+
+
+        }
+
 };
-
-
 
 
 
 int main(int argc, char **argv) {
 	
 	// Command line arguments
-	string filename; 									// file to predict and compare
-	string out_file;
-	int k = 5;											// size of the sliding window
-	float alpha = 0.1;									// alpha value for probability
-	float threshold = 0.5;								// probability threshold
-	string output_file = "output.txt";
+	string representation_filename;         // text representing the class ri (for example, representing a certain language)
+	string analysis_filename;               // text under analysis
+	int k = 5;                              // default size of the sliding window
+	float alpha = 0.1;					    // default alpha value for probability
+	float threshold = 0.5;                  // default probability threshold
 
 
 	int opt;
-    while ((opt = getopt(argc, argv, "f:k:a:t:o:")) != -1) {
+    while ((opt = getopt(argc, argv, "t:k:a:t:r:")) != -1) {
         switch (opt) {
-			case 'o':
-				out_file = string(optarg);
+			case 'r':
+				representation_filename = string(optarg);
 				break;
-            case 'f':
-                filename = string(optarg);
+            case 't':
+                analysis_filename = string(optarg);
                 break;
             case 'k':
                 k = atoi(optarg);
@@ -275,7 +304,7 @@ int main(int argc, char **argv) {
 					exit(EXIT_FAILURE);
 				}
                 break;
-			case 't':
+			case 'p':
                 threshold = atof(optarg);
 				if (threshold < 0 || threshold > 1) {		
 					cout << "[ERROR] Probability threshold must be between 0 and 1.\n" << endl;
@@ -283,16 +312,27 @@ int main(int argc, char **argv) {
 				}
                 break;
             default:
-                cerr << "Usage: " << argv[0] << " -f <filename> -k <window_size> -a <alpha> -t <threshold> -o <previsions_output_file>\n";
+                cerr << "Usage: " << argv[0] << " -r <representation_filename> -t <analysis_filename> -k <window_size> -a <alpha> -p <threshold>\n";
                 return 1;
         }
     }
 
-	CopyModel cp(filename, k, alpha, threshold, output_file);
+    /* Execution time start */
+    time_t exec_time = clock();
 
+    /* Create a copy model based on the given representation file (Ri) */
+	CopyModel cp(representation_filename, k, alpha, threshold);
 	cp.start();
-	cp.export_run(out_file);
-	//cp.export_model("model");
+
+    cout << "Acabou o copy model" << endl;
+
+    /* Compress t (analysis file) using the representation file based copy model (Ri) and estimate the number of bits required to compress t. */
+    cp.process_analysis_file(analysis_filename);
+
+    /* Execution time end */
+    exec_time = float (clock() - exec_time);
+
+    cout << "exec time = " << exec_time << endl;
 
 	return 0;
 }
