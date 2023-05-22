@@ -1,21 +1,13 @@
-CC = g++
-CFLAGS = -Wall -g
+all: lang	findlang locatelang
 
-OBJS =
-cpm_OBJS = $(OBJS)
-cpm_gen_OBJS = $(OBJS)
+lang:	./src/lang.o
+	g++ -o ./bin/lang $^ -lm -g
+	rm $^
 
+findlang:	./src/findlang.o
+	g++ -o ./bin/findlang $^ -lm -g
+	rm $^
 
-all: cpm	cpm_gen
-
-lang:	lang.o $(lang_OBJS)
-	$(CC) -o ./bin/lang $^ -lm -g
-
-findlang:	findlang.o $(findlang_OBJS)
-	$(CC) -o ./bin/findlang $^ -lm -g
-
-locatelang:	locatelang.o $(locatelang_OBJS)
-	$(CC) -o ./bin/locatelang $^ -lm -g
-
-clean:
-	rm -rf *.o
+locatelang:	./src/locatelang.o
+	g++ -o ./bin/locatelang $^ -lm -g
+	rm $^
