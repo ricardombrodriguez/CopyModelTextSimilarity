@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <string>
 #include <getopt.h>
+#include <ctime>
 
 #include "copymodel.hpp"
 
@@ -62,6 +63,9 @@ int main(int argc, char **argv)
   string best_estimated_model;
   float best_estimated_bits = -1;
 
+  /* Execution time start */
+  time_t exec_time = time(nullptr);
+
   // Iterate over each file in the directory
   for (const auto &entry : filesystem::directory_iterator(folderPath))
   {
@@ -69,33 +73,27 @@ int main(int argc, char **argv)
     {
       string filePath = entry.path().string();
 
-      /* Execution time start */
-      time_t exec_time = clock();
-
-      cout << "Começou o copy model para o modelo " << filePath << endl;
-
       /* Create a copy model based on the given representation file (Ri) */
-      CopyModel cp(filePath, k, alpha, threshold);
-      cp.start();
-
-      cout << "Acabou o copy model" << endl;
+      CopyModel cp(k, alpha, threshold);
+      cp.create_model(filePath);
 
       /* Compress t (analysis file) using the representation file based copy model (Ri) and estimate the number of bits required to compress t. */
       float estimated_bits = cp.process_analysis_file(analysis_filename);
-      cout << "This model takes " << estimated_bits << " bits" << endl;
+      cout << "The model '" << filePath << "' takes " << estimated_bits << " bits" << endl;
 
       if (best_estimated_bits < 0 || estimated_bits < best_estimated_bits) {
         best_estimated_bits = estimated_bits;
         best_estimated_model = filePath;
       }
-
-        /* Execution time end */
-        exec_time = float(clock() - exec_time);
-
-      cout << "exec time = " << exec_time << endl;
     }
   }
 
+  cout << endl;
+
+  /* Execution time end */
+  exec_time = time(nullptr) - exec_time;
+
+  cout << "exec time = " << exec_time << " seconds" << endl;
   cout << "best model: " << best_estimated_model << endl;
 
   return 0;

@@ -34,3 +34,4 @@
 bin/
 
 *.utf8
+.vscode

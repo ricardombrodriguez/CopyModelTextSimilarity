@@ -67,13 +67,15 @@ int main(int argc, char **argv)
 	time_t exec_time = clock();
 
 	/* Create a copy model based on the given representation file (Ri) */
-	CopyModel cp(representation_filename, k, alpha, threshold);
-	cp.start();
+	CopyModel cp(k, alpha, threshold);
+	cp.create_model(representation_filename);
 
 	cout << "Acabou o copy model" << endl;
 
 	/* Compress t (analysis file) using the representation file based copy model (Ri) and estimate the number of bits required to compress t. */
-	cp.process_analysis_file(analysis_filename);
+	float estimated_bits = cp.process_analysis_file(analysis_filename);
+
+	cout << "Estimated bits: " << estimated_bits << endl;
 
 	/* Execution time end */
 	exec_time = float(clock() - exec_time);
