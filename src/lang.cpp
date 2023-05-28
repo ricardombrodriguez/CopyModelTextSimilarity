@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Execution time start */
-	time_t exec_time = clock();
+	time_t exec_time = time(nullptr);
 
 	/* Create a copy model based on the given representation file (Ri) */
 	CopyModel cp(k, alpha, threshold);
@@ -78,9 +78,9 @@ int main(int argc, char **argv)
 	cout << "Estimated bits: " << estimated_bits << endl;
 
 	/* Execution time end */
-	exec_time = float(clock() - exec_time);
+	exec_time = float(time(nullptr) - exec_time);
 
-	cout << "exec time = " << exec_time << endl;
+	cout << "exec time = " << exec_time << " seconds" << endl;
 
 	return 0;
 }

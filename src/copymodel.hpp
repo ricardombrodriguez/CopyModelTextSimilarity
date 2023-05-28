@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <set>
+#include <list>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -11,10 +12,10 @@ using namespace std;
 
 struct sequence_possibilities
 {
-  unordered_map<char, float> hashmap;
-  set<int> pointers;
-  float count;
+  list<int> pointers;
   float probability;
+  int n_hits;
+  int n_fails;
 };
 
 class CopyModel
@@ -35,7 +36,7 @@ private:
   set<char> alphabet; // file stream
 
   string ignored_chars = {
-      '.', ',', ';', '!', '?', '*', '(', ')', '[', ']', '/', '-', '"', ':', '\\', '\n', '\t',
+      '.', ',', ';', '!', '?', '*', '(', ')', '[', ']', '/', '-', '_', '"', ':', '\\', '\n', '\t',
       '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
   };
 
@@ -119,22 +120,70 @@ public:
         continue;
       }
 
+      window = window.substr(1, k - 1);
+    }
+
+    pointer = 0;
+    window = "";
+
+    file.seekg(pointer, ios::beg);
+
+    // While the file is no fully processed
+    while (pointer < file_length)
+    {
+      char last_ch = next_character;
+
+      file.get(next_character);
+      file.seekg(++pointer, ios::beg); // Increments pointer for next iteration (sliding-window)
+
+      if (ignored_chars.find(next_character) != string::npos || last_ch == ' ' && next_character == last_ch)
+      {
+        next_character = last_ch;
+        continue;
+      }
+
+      window += next_character;
+
+      if (window.size() < k)
+      {
+        continue;
+      }
+
       if (sequences_data.find(window) == sequences_data.end())
       {
         sequences_data.insert({window, {}});
+        sequences_data.at(window).probability = (float)1 / alphabet.size();
       }
 
       sequence_possibilities *st = &sequences_data.at(window);
 
-      (*st).pointers.insert(pointer);
-
-      if ((*st).hashmap.find(next_character) == (*st).hashmap.end())
+      if (!(*st).pointers.empty())
       {
-        (*st).hashmap.insert({next_character, alpha});
+        char predicted_character;
+        file.seekg((*st).pointers.front(), ios::beg);
+        file.get(predicted_character);
+        file.seekg(pointer, ios::beg);
+
+        if (predicted_character == next_character)
+        {
+          (*st).n_hits++;
+        }
+        else
+        {
+          (*st).n_fails++;
+        }
+
+        (*st).probability = ((*st).n_hits + alpha) / ((*st).n_hits + (*st).n_fails + alphabet.size() * alpha);
+
+        if ((*st).probability < this->threshold)
+        {
+          (*st).n_hits = 0;
+          (*st).n_fails = 0;
+          (*st).pointers.pop_front();
+        }
       }
 
-      (*st).count += 1;
-      (*st).hashmap.at(next_character) += 1;
+      (*st).pointers.push_back(pointer);
 
       window = window.substr(1, k - 1);
     }
@@ -174,24 +223,17 @@ public:
         continue;
       }
 
-      int count;
+      float information;
 
-      float applied_alpha = alpha;
-
-      if (this->sequences_data.find(window) != this->sequences_data.end() && this->sequences_data.find(window)->first == window)
+      if (this->sequences_data.find(window) != this->sequences_data.end())
       {
-        count = this->sequences_data.at(window).count;
+        information = -log2(this->sequences_data.at(window).probability);
       }
       else
       {
-        count = 0;
-        applied_alpha = applied_alpha / 1000;
+        information = log2(pow(k, alphabet.size()));
       }
 
-      float probability = (count + applied_alpha) / (file_length - k + 1 + (pow(alphabet.size(), this->k)) * applied_alpha);
-      float information = -log2(probability);
-
-      entropy += probability * information;
       total_bits += information;
 
       window = window.substr(1, k - 1);
