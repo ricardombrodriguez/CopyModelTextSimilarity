@@ -18,7 +18,7 @@ int main(int argc, char **argv)
   float threshold = 0.5;          // default probability threshold
 
   int opt;
-  while ((opt = getopt(argc, argv, "t:k:a:t:")) != -1)
+  while ((opt = getopt(argc, argv, "t:k:a:p:")) != -1)
   {
     switch (opt)
     {
