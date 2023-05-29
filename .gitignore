@@ -37,3 +37,4 @@ bin/
 .vscode
 
 models/
+_models/
