@@ -41,6 +41,9 @@ private:
   };
 
 public:
+
+  string filename;
+
   /*
    *	Instantiation
    *
@@ -70,6 +73,8 @@ public:
     file.seekg(0, ios::end);
     int file_length = file.tellg();
     file.seekg(0, ios::beg);
+
+    this->filename = filename;
 
     return file_length;
   }
@@ -288,4 +293,23 @@ public:
 
     return total_bits;
   }
+
+    /* Estimate the total number of bits of the window, using the current model */
+  float process_segment(string window)
+  {
+
+    float information;
+
+    if (this->sequences_data.find(window) != this->sequences_data.end())
+    {
+      information = -log2(this->sequences_data.at(window).probability);
+    }
+    else
+    {
+      information = log2(pow(k, alphabet.size()));
+    }
+
+    return information;
+  }
+
 };
