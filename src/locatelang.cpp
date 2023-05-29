@@ -5,6 +5,7 @@
 #include <ctime>
 #include <vector>
 #include <tuple>
+#include <list>
 
 #include "copymodel.hpp"
 
@@ -29,8 +30,8 @@ int open_file(ifstream &file, string filename)
   return file_length;
 }
 
-
-void perform_locate_lang(string filePath, CopyModel* models[], int num_models, int k) {
+void perform_locate_lang(string filePath, list<CopyModel> models, int num_models, int k)
+{
 
   /* Open file pointer (or exit if there's an error) */
   ifstream file;
@@ -75,23 +76,18 @@ void perform_locate_lang(string filePath, CopyModel* models[], int num_models, i
 
     CopyModel *model = nullptr;
 
-    for (int i = 0; i < num_models; ++i) {
-      
-      if (models[i] != nullptr) {
-        model = models[i];
-      } else {
-        break;
-      }
+    for (CopyModel model: models) {
   
       /* Get the total number of bits for the window, given the model */
-      total_bits = model->process_segment(window);
+      total_bits = model.process_segment(window);
 
       /* Update if the model is better*/
       if (total_bits < best_model_bits) {
         best_model_bits = total_bits;
-        best_model_filename = model->filename;
+        best_model_filename = model.filename;
       }
 
+      cout << "Current model for sequence '" << window << "': " << current_model << " with " << best_model_bits << " bits" << endl;
     }
 
     /* Check if there was a change in the language model and register it */
@@ -100,11 +96,11 @@ void perform_locate_lang(string filePath, CopyModel* models[], int num_models, i
       lang_segment_positions.push_back( tuple<int,string>(pointer,current_model) );
     }
 
-    window = window.substr(1, k - 1);    
+    cout << "Current model for sequence '" << window << "': " << current_model << endl;
 
+    window = window.substr(1, k - 1);
   }
 }
-
 
 int main(int argc, char **argv)
 {
@@ -112,11 +108,9 @@ int main(int argc, char **argv)
   // Command line arguments
   string analysis_filename;       // text under analysis
   int k = 5;                      // default size of the sliding window
-  float alpha = 0.1;              // default alpha value for probability
-  float threshold = 0.5;          // default probability threshold
 
   int opt;
-  while ((opt = getopt(argc, argv, "t:k:a:t:")) != -1)
+  while ((opt = getopt(argc, argv, "t:")) != -1)
   {
     switch (opt)
     {
@@ -132,24 +126,6 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
       }
       break;
-    case 'a':
-      alpha = atof(optarg);
-      if (alpha <= 0)
-      {
-        cout << "[ERROR] Alpha must be bigger than zero.\n"
-             << endl;
-        exit(EXIT_FAILURE);
-      }
-      break;
-    case 'p':
-      threshold = atof(optarg);
-      if (threshold < 0 || threshold > 1)
-      {
-        cout << "[ERROR] Probability threshold must be between 0 and 1.\n"
-             << endl;
-        exit(EXIT_FAILURE);
-      }
-      break;
     default:
       cerr << "Usage: " << argv[0] << " -t <analysis_filename> -k <window_size> -a <alpha> -p <threshold>\n";
       return 1;
@@ -161,7 +137,7 @@ int main(int argc, char **argv)
   cout << "Creating language models..." << endl;
 
   /* Used to store the CopyModel class pointers */
-  CopyModel *models[50];
+  list<CopyModel> models;
   int num_models = 0;
   // Iterate over each file in the directory
   for (const auto &entry : filesystem::directory_iterator(folderPath))
@@ -171,9 +147,9 @@ int main(int argc, char **argv)
       string filePath = entry.path().string();
 
       /* Create a copy model based on the given representation file (Ri) */
-      CopyModel cp(k, alpha, threshold);
-      cp.create_model(filePath);
-      models[num_models++] = &cp;
+      CopyModel cp(0, 0, 0);
+      cp.import_model(filePath);
+      models.push_back(cp);
     }
   }
 
