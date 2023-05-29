@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string>
 #include <unordered_map>
@@ -186,8 +187,53 @@ public:
     }
   }
 
+  void export_model(string output_filename)
+  {
+    ofstream out;
+    out.open(output_filename);
+    if (!out.is_open())
+    {
+      cout << "[ERROR] Can't open file '" << output_filename << "'" << endl;
+      exit(EXIT_FAILURE);
+    }
+
+    out << alphabet.size() << endl;
+    out << k << endl;
+
+    for (const auto &pair : sequences_data)
+    {
+      out << pair.first << ":" << pair.second.probability << endl;
+    }
+
+    out.close();
+  }
+
+  void import_model(string input_filename)
+  {
+
+    ifstream file;
+    open_file(file, input_filename);
+
+    string line;
+
+    getline(file, line);
+    
+    for (size_t i = 0; i < stoi(line); i++)
+    {
+      alphabet.insert(i);
+    }
+
+    getline(file, line);
+    k = stoi(line);
+
+    while (getline(file, line))
+    {
+      sequences_data.insert({line.substr(0, k), {.probability = stof(line.substr(k+1))}});
+    }
+  }
+
   /* Estimate the total number of bits of t (analysis file), using the computed model from Ri (representation file) */
-  float process_analysis_file(string analysis_filename)
+  float process_analysis_file(string analysis_filename, int max_bits = -1)
   {
 
     /* Open file pointer (or exit if there's an error) */
@@ -232,6 +278,10 @@ public:
       }
 
       total_bits += information;
+
+      if (max_bits > 0 && total_bits > max_bits) {
+        return -1;
+      }
 
       window = window.substr(1, k - 1);
     }

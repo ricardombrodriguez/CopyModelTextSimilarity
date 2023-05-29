@@ -13,47 +13,17 @@ int main(int argc, char **argv)
 
   // Command line arguments
   string analysis_filename;       // text under analysis
-  int k = 5;                      // default size of the sliding window
-  float alpha = 0.1;              // default alpha value for probability
-  float threshold = 0.5;          // default probability threshold
 
   int opt;
-  while ((opt = getopt(argc, argv, "t:k:a:p:")) != -1)
+  while ((opt = getopt(argc, argv, "t:")) != -1)
   {
     switch (opt)
     {
     case 't':
       analysis_filename = string(optarg);
       break;
-    case 'k':
-      k = atoi(optarg);
-      if (k < 1)
-      {
-        cout << "[ERROR] Sliding window size must be greater than zero.\n"
-             << endl;
-        exit(EXIT_FAILURE);
-      }
-      break;
-    case 'a':
-      alpha = atof(optarg);
-      if (alpha <= 0)
-      {
-        cout << "[ERROR] Alpha must be bigger than zero.\n"
-             << endl;
-        exit(EXIT_FAILURE);
-      }
-      break;
-    case 'p':
-      threshold = atof(optarg);
-      if (threshold < 0 || threshold > 1)
-      {
-        cout << "[ERROR] Probability threshold must be between 0 and 1.\n"
-             << endl;
-        exit(EXIT_FAILURE);
-      }
-      break;
     default:
-      cerr << "Usage: " << argv[0] << " -r <representation_filename> -t <analysis_filename> -k <window_size> -a <alpha> -p <threshold>\n";
+      cerr << "Usage: " << argv[0] << " -t <analysis_filename>\n";
       return 1;
     }
   }
@@ -74,16 +44,25 @@ int main(int argc, char **argv)
       string filePath = entry.path().string();
 
       /* Create a copy model based on the given representation file (Ri) */
-      CopyModel cp(k, alpha, threshold);
-      cp.create_model(filePath);
+      CopyModel cp(0, 0, 0);
+      cp.import_model(filePath);
 
       /* Compress t (analysis file) using the representation file based copy model (Ri) and estimate the number of bits required to compress t. */
-      float estimated_bits = cp.process_analysis_file(analysis_filename);
-      cout << "The model '" << filePath << "' takes " << estimated_bits << " bits" << endl;
+      float estimated_bits = cp.process_analysis_file(analysis_filename, best_estimated_bits);
 
-      if (best_estimated_bits < 0 || estimated_bits < best_estimated_bits) {
-        best_estimated_bits = estimated_bits;
-        best_estimated_model = filePath;
+      if (estimated_bits >= 0)
+      {
+        cout << "The model '" << filePath << "' takes " << estimated_bits << " bits" << endl;
+
+        if (best_estimated_bits < 0 || estimated_bits < best_estimated_bits)
+        {
+          best_estimated_bits = estimated_bits;
+          best_estimated_model = filePath;
+        }
+      }
+      else
+      {
+        cout << "The model '" << filePath << "' takes more than " << best_estimated_bits << " bits" << endl;
       }
     }
   }

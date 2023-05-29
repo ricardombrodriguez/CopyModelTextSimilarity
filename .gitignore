@@ -35,3 +35,5 @@ bin/
 
 *.utf8
 .vscode
+
+models/
