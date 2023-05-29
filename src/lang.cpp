@@ -6,6 +6,7 @@
 #include <getopt.h>
 
 #include "copymodel.hpp"
+#include "encodingmodel.hpp"
 
 using namespace std;
 
@@ -19,8 +20,10 @@ int main(int argc, char **argv)
 	float alpha = 0.1;							// default alpha value for probability
 	float threshold = 0.5;					// default probability threshold
 
+	bool use_copy_model = true;
+
 	int opt;
-	while ((opt = getopt(argc, argv, "t:k:a:t:r:")) != -1)
+	while ((opt = getopt(argc, argv, "t:k:a:t:r:c")) != -1)
 	{
 		switch (opt)
 		{
@@ -57,6 +60,9 @@ int main(int argc, char **argv)
 				exit(EXIT_FAILURE);
 			}
 			break;
+		case 'c':
+			use_copy_model = false;
+			break;
 		default:
 			cerr << "Usage: " << argv[0] << " -r <representation_filename> -t <analysis_filename> -k <window_size> -a <alpha> -p <threshold>\n";
 			return 1;
@@ -66,14 +72,26 @@ int main(int argc, char **argv)
 	/* Execution time start */
 	time_t exec_time = time(nullptr);
 
-	/* Create a copy model based on the given representation file (Ri) */
-	CopyModel cp(k, alpha, threshold);
-	cp.create_model(representation_filename);
+	float estimated_bits;
 
-	cout << "Acabou o copy model" << endl;
+	if (use_copy_model)
+	{
+		CopyModel cp(k, alpha, threshold);
 
-	/* Compress t (analysis file) using the representation file based copy model (Ri) and estimate the number of bits required to compress t. */
-	float estimated_bits = cp.process_analysis_file(analysis_filename);
+		cp.create_model(representation_filename);
+
+		/* Compress t (analysis file) using the representation file based copy model (Ri) and estimate the number of bits required to compress t. */
+		float estimated_bits = cp.process_analysis_file(analysis_filename);
+	}
+	else
+	{
+		EncodingModel em(k);
+
+		em.create_model(representation_filename);
+
+		/* Compress t (analysis file) using the representation file based copy model (Ri) and estimate the number of bits required to compress t. */
+		float estimated_bits = em.process_analysis_file(analysis_filename);
+	}
 
 	cout << "Estimated bits: " << estimated_bits << endl;
 

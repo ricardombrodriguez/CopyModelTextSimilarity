@@ -5,6 +5,7 @@
 #include <ctime>
 
 #include "copymodel.hpp"
+#include "encodingmodel.hpp"
 
 using namespace std;
 
@@ -16,8 +17,10 @@ int main(int argc, char **argv)
   float alpha = 0.1;        // default alpha value for probability
   float threshold = 0.5;    // default probability threshold
 
+  bool use_copy_model = true;
+
   int opt;
-  while ((opt = getopt(argc, argv, "k:a:p:")) != -1)
+  while ((opt = getopt(argc, argv, "k:a:p:c")) != -1)
   {
     switch (opt)
     {
@@ -48,6 +51,9 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
       }
       break;
+    case 'c':
+      use_copy_model = false;
+      break;
     default:
       cerr << "Usage: " << argv[0] << " -k <window_size> -a <alpha> -p <threshold>\n";
       return 1;
@@ -57,6 +63,11 @@ int main(int argc, char **argv)
   string folderPath = "./sources";
 
   string outPath = "./models";
+
+  if (!use_copy_model)
+  {
+    outPath = "./_models";
+  }
 
   /* Execution time start */
   time_t exec_time = time(nullptr);
@@ -70,11 +81,18 @@ int main(int argc, char **argv)
     {
       string filePath = entry.path().string();
 
-      /* Create a copy model based on the given representation file (Ri) */
-      CopyModel cp(k, alpha, threshold);
-      cp.create_model(filePath);
-
-      cp.export_model(outPath + "/" + entry.path().filename().string());
+      if (use_copy_model)
+      {
+        CopyModel cp(k, alpha, threshold);
+        cp.create_model(filePath);
+        cp.export_model(outPath + "/" + entry.path().filename().string());
+      }
+      else
+      {
+        EncodingModel em(k);
+        em.create_model(filePath);
+        em.export_model(outPath + "/" + entry.path().filename().string());
+      }
 
       cout << "Model for the source '" << filePath << "' has been generated" << endl;
     }

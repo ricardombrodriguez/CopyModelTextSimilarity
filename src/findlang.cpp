@@ -5,6 +5,7 @@
 #include <ctime>
 
 #include "copymodel.hpp"
+#include "encodingmodel.hpp"
 
 using namespace std;
 
@@ -13,14 +14,18 @@ int main(int argc, char **argv)
 
   // Command line arguments
   string analysis_filename;       // text under analysis
+  bool use_copy_model = true;
 
   int opt;
-  while ((opt = getopt(argc, argv, "t:")) != -1)
+  while ((opt = getopt(argc, argv, "t:c")) != -1)
   {
     switch (opt)
     {
     case 't':
       analysis_filename = string(optarg);
+      break;
+    case 'c':
+      use_copy_model = false;
       break;
     default:
       cerr << "Usage: " << argv[0] << " -t <analysis_filename>\n";
@@ -29,6 +34,10 @@ int main(int argc, char **argv)
   }
 
   string folderPath = "./models";
+
+  if (!use_copy_model) {
+    folderPath = "./_models";
+  }
 
   string best_estimated_model;
   float best_estimated_bits = -1;
@@ -43,12 +52,25 @@ int main(int argc, char **argv)
     {
       string filePath = entry.path().string();
 
-      /* Create a copy model based on the given representation file (Ri) */
-      CopyModel cp(0, 0, 0);
-      cp.import_model(filePath);
+      float estimated_bits;
 
-      /* Compress t (analysis file) using the representation file based copy model (Ri) and estimate the number of bits required to compress t. */
-      float estimated_bits = cp.process_analysis_file(analysis_filename, best_estimated_bits);
+      if (use_copy_model) {
+        CopyModel cp(0, 0, 0);
+
+        /* Create a copy model based on the given representation file (Ri) */
+        cp.import_model(filePath);
+
+        /* Compress t (analysis file) using the representation file based copy model (Ri) and estimate the number of bits required to compress t. */
+        estimated_bits = cp.process_analysis_file(analysis_filename, best_estimated_bits);
+      } else {
+        EncodingModel em(0);
+
+        /* Create a copy model based on the given representation file (Ri) */
+        em.import_model(filePath);
+
+        /* Compress t (analysis file) using the representation file based copy model (Ri) and estimate the number of bits required to compress t. */
+        estimated_bits = em.process_analysis_file(analysis_filename, best_estimated_bits);
+      }
 
       if (estimated_bits >= 0)
       {
