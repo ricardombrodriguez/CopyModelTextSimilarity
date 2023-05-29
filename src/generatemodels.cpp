@@ -16,8 +16,10 @@ int main(int argc, char **argv)
   float alpha = 0.1;        // default alpha value for probability
   float threshold = 0.5;    // default probability threshold
 
+  string filename;
+
   int opt;
-  while ((opt = getopt(argc, argv, "k:a:p:")) != -1)
+  while ((opt = getopt(argc, argv, "k:a:p:r:")) != -1)
   {
     switch (opt)
     {
@@ -48,6 +50,9 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
       }
       break;
+    case 'r':
+      filename = string(optarg);
+      break;
     default:
       cerr << "Usage: " << argv[0] << " -k <window_size> -a <alpha> -p <threshold>\n";
       return 1;
@@ -69,6 +74,10 @@ int main(int argc, char **argv)
     if (filesystem::is_regular_file(entry.path()))
     {
       string filePath = entry.path().string();
+
+      if (!filename.empty() && filename != filePath) {
+        continue;
+      }
 
       /* Create a copy model based on the given representation file (Ri) */
       CopyModel cp(k, alpha, threshold);
