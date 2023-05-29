@@ -4,10 +4,107 @@
 #include <getopt.h>
 #include <ctime>
 #include <vector>
+#include <tuple>
 
 #include "copymodel.hpp"
 
 using namespace std;
+
+
+int open_file(ifstream &file, string filename)
+{
+  /* Open file pointer (or exit if there's an error) */
+  file.open(filename, ios::binary);
+  if (!file.is_open())
+  {
+    cout << "[ERROR] Can't open file '" << filename << "'" << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  /* Get file length */
+  file.seekg(0, ios::end);
+  int file_length = file.tellg();
+  file.seekg(0, ios::beg);
+
+  return file_length;
+}
+
+
+void perform_locate_lang(string filePath, CopyModel* models[], int num_models, int k) {
+
+  /* Open file pointer (or exit if there's an error) */
+  ifstream file;
+  int file_length = open_file(file, filePath);
+
+  string window;       // Vector that stores all the file characters, in order to retrieve the next character after a sequence, given the position
+  char next_character; // Next character
+  int pointer = 0;
+  string current_model;    // String that stores the current model filename 
+  vector<tuple<int,string>> lang_segment_positions;    // Stores the position and the language of each segment
+
+  string ignored_chars = {
+      '.', ',', ';', '!', '?', '*', '(', ')', '[', ']', '/', '-', '"', ':', '\\', '\n', '\t',
+      '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+  };
+
+  float total_bits, entropy;
+
+  while (pointer < file_length)
+  {
+    char last_ch = next_character;
+
+    file.get(next_character);        // Get the unread character from the file
+    file.seekg(++pointer, ios::beg); // Increments pointer for next iteration (sliding-window)
+
+    if (ignored_chars.find(next_character) != string::npos || last_ch == ' ' && next_character == last_ch)
+    {
+      next_character = last_ch;
+      continue;
+    }
+
+    window += next_character;
+
+    if (window.size() < k)
+    {
+      continue;
+    }
+
+    string best_model_filename;
+    float best_model_bits = 10e10;
+    float total_bits;
+
+    CopyModel *model = nullptr;
+
+    for (int i = 0; i < num_models; ++i) {
+      
+      if (models[i] != nullptr) {
+        model = models[i];
+      } else {
+        break;
+      }
+  
+      /* Get the total number of bits for the window, given the model */
+      total_bits = model->process_segment(window);
+
+      /* Update if the model is better*/
+      if (total_bits < best_model_bits) {
+        best_model_bits = total_bits;
+        best_model_filename = model->filename;
+      }
+
+    }
+
+    /* Check if there was a change in the language model and register it */
+    if (current_model.empty() || best_model_filename != current_model) {
+      current_model = best_model_filename;
+      lang_segment_positions.push_back( tuple<int,string>(pointer,current_model) );
+    }
+
+    window = window.substr(1, k - 1);    
+
+  }
+}
+
 
 int main(int argc, char **argv)
 {
@@ -64,9 +161,8 @@ int main(int argc, char **argv)
   cout << "Creating language models..." << endl;
 
   /* Used to store the CopyModel class pointers */
-  CopyModel models[];
-  int i = 0;
-
+  CopyModel *models[50];
+  int num_models = 0;
   // Iterate over each file in the directory
   for (const auto &entry : filesystem::directory_iterator(folderPath))
   {
@@ -77,10 +173,8 @@ int main(int argc, char **argv)
       /* Create a copy model based on the given representation file (Ri) */
       CopyModel cp(k, alpha, threshold);
       cp.create_model(filePath);
-      models[i++] = cp;
-
+      models[num_models++] = &cp;
     }
-    
   }
 
   cout << "Language models created!" << endl;
@@ -89,7 +183,7 @@ int main(int argc, char **argv)
   /* Execution time start */
   time_t exec_time = time(nullptr);
 
-  perform_locate_lang(analysis_filename, models);
+  perform_locate_lang(analysis_filename, models, num_models, k);
 
   /* Execution time end */
   exec_time = time(nullptr) - exec_time;
@@ -99,72 +193,4 @@ int main(int argc, char **argv)
   cout << "exec time = " << exec_time << " seconds" << endl;
 
   return 0;
-}
-
-void perform_locate_lang(string filePath, CopyModel models[]) {
-
-  /* Open file pointer (or exit if there's an error) */
-  ifstream file;
-  int file_length = this->open_file(file, analysis_filename);
-
-  string window;       // Vector that stores all the file characters, in order to retrieve the next character after a sequence, given the position
-  char next_character; // Next character
-  int pointer = 0;
-  string current_model;    // String that stores the current model filename 
-  vector<tuple<int,string> lang_segment_positions;    // Stores the position and the language of each segment
-
-  string ignored_chars = {
-      '.', ',', ';', '!', '?', '*', '(', ')', '[', ']', '/', '-', '"', ':', '\\', '\n', '\t',
-      '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
-  };
-
-  float total_bits, entropy;
-
-  while (pointer < file_length)
-  {
-    char last_ch = next_character;
-
-    file.get(next_character);        // Get the unread character from the file
-    file.seekg(++pointer, ios::beg); // Increments pointer for next iteration (sliding-window)
-
-    if (ignored_chars.find(next_character) != string::npos || last_ch == ' ' && next_character == last_ch)
-    {
-      next_character = last_ch;
-      continue;
-    }
-
-    window += next_character;
-
-    if (window.size() < k)
-    {
-      continue;
-    }
-
-    string best_model_filename;
-    float best_model_bits = INF;
-    float total_bits;
-
-    /* Check for the best model for the given window, according to the number of bits (least = better) */
-    for (int i = 0; i < sizeof(models)/sizeof(*models); i++) { 
-
-      /* Get the total number of bits for the window, given the model */
-      total_bits = cp.process_segment(window);
-
-      /* Update if the model is better*/
-      if (total_bits < best_estimated_bits) {
-        best_model_bits = total_bits;
-        best_model_filename = cp.filename;
-      }
-
-    }
-
-    /* Check if there was a change in the language model and register it */
-    if (!current_model || best_model_filename != current_model) {
-      current_model = best_model_filename;
-      lang_segment_positions.push_back( tuple<int,string>(pointer,current_model) );
-    }
-
-    window = window.substr(1, k - 1);    
-
-  }
 }

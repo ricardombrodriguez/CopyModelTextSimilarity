@@ -31,7 +31,6 @@ private:
   /**
    *  structs
    */
-  string filename;
   unordered_map<string, sequence_possibilities> sequences_data;
   set<char> alphabet; // file stream
 
@@ -41,6 +40,9 @@ private:
   };
 
 public:
+
+  string filename;
+
   /*
    *	Instantiation
    *
@@ -245,21 +247,18 @@ public:
     /* Estimate the total number of bits of the window, using the current model */
   float process_segment(string window)
   {
-    int count;
-    float applied_alpha = alpha;
 
-    if (this->sequences_data.find(window) != this->sequences_data.end() && this->sequences_data.find(window)->first == window)
+    float information;
+
+    if (this->sequences_data.find(window) != this->sequences_data.end())
     {
-      count = this->sequences_data.at(window).count;
+      information = -log2(this->sequences_data.at(window).probability);
     }
     else
     {
-      count = 0;
-      applied_alpha = applied_alpha / 1000;
+      information = log2(pow(k, alphabet.size()));
     }
 
-    float probability = (count + applied_alpha) / (file_length - k + 1 + (pow(alphabet.size(), this->k)) * applied_alpha);
-    float information = -log2(probability);
     return information;
   }
 
