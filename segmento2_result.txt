@@ -1,19 +1,32 @@
-[ ./models/italian.txt ] Segment [0-6] -> aa vid
-[ ./models/swedish.txt ] Segment [7-8] -> a
-[ ./models/portuguese.txt ] Segment [9-25] -> lva o vento e he
-[ ./models/spanish.txt ] Segment [26-27] ->  
-[ ./models/english.txt ] Segment [28-42] -> os to the bake
-[ ./models/italian.txt ] Segment [43-44] -> r
-[ ./models/english.txt ] Segment [45-49] ->  e g
-[ ./models/italian.txt ] Segment [50-50] -> 
-[ ./models/spanish.txt ] Segment [51-62] -> uan mucho l
-[ ./models/english.txt ] Segment [63-64] -> o
-[ ./models/german.txt ] Segment [65-65] -> 
-[ ./models/dutch.txt ] Segment [66-66] -> 
-[ ./models/german.txt ] Segment [67-67] -> 
-[ ./models/english.txt ] Segment [68-68] -> 
-[ ./models/spanish.txt ] Segment [69-69] -> 
-[ ./models/italian.txt ] Segment [70-70] -> 
-[ ./models/portuguese.txt ] Segment [71-75] ->  ess
-[ ./models/finnish.txt ] Segment [76-76] -> 
-[ ./models/french.txt ] Segment [77-77] -> 
+[ ./models/italian.txt ] Segment [0-6] -> a vida
+[ ./models/swedish.txt ] Segment [6-8] ->  l
+[ ./models/portuguese.txt ] Segment [8-24] -> eva o vento e th
+[ ./models/italian.txt ] Segment [24-25] -> e
+[ ./models/portuguese.txt ] Segment [25-26] ->  
+[ ./models/french.txt ] Segment [26-30] -> dog 
+[ ./models/english.txt ] Segment [30-32] -> ba
+[ ./models/italian.txt ] Segment [32-34] -> rk
+[ ./models/english.txt ] Segment [34-35] -> s
+[ ./models/italian.txt ] Segment [35-36] ->  
+[ ./models/english.txt ] Segment [36-49] -> at the park e
+[ ./models/italian.txt ] Segment [49-52] ->  o 
+[ ./models/portuguese.txt ] Segment [52-62] -> senhor nav
+[ ./models/catalan.txt ] Segment [62-66] -> egou
+[ ./models/italian.txt ] Segment [66-67] ->  
+[ ./models/portuguese.txt ] Segment [67-68] -> p
+[ ./models/italian.txt ] Segment [68-69] -> e
+[ ./models/spanish.txt ] Segment [69-70] -> l
+[ ./models/catalan.txt ] Segment [70-71] -> o
+[ ./models/italian.txt ] Segment [71-72] -> s
+[ ./models/portuguese.txt ] Segment [72-77] ->  mare
+[ ./models/french.txt ] Segment [77-78] -> s
+[ ./models/swedish.txt ] Segment [78-80] ->  a
+[ ./models/german.txt ] Segment [80-81] -> t
+[ ./models/french.txt ] Segment [81-82] -> Ã
+[ ./models/italian.txt ] Segment [82-88] -> © ao f
+[ ./models/portuguese.txt ] Segment [88-93] -> im do
+[ ./models/english.txt ] Segment [93-97] ->  mun
+[ ./models/italian.txt ] Segment [97-98] -> d
+[ ./models/portuguese.txt ] Segment [98-103] -> o rag
+[ ./models/italian.txt ] Segment [103-141] -> azzino pizza italia giovane fuoriclass
+[ ./models/portuguese.txt ] Segment [141-142] -> e

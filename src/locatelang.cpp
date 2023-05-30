@@ -58,6 +58,7 @@ void store_results(vector<tuple<int,string>> lang_segments, string analysis_file
 
 
   int pointer = 0;
+  int i = 0;
   char* segment;
 
   // Accessing keys and values
@@ -67,25 +68,38 @@ void store_results(vector<tuple<int,string>> lang_segments, string analysis_file
     string model_name = get<1>(segment_data);
     int segment_size = position - pointer;
 
+    /* Last segment */
+    if (i == lang_segments.size() - 1) {
+      /* Get file length */
+      analysis_file.seekg(0, ios::end);
+      int file_length = analysis_file.tellg();
+      cout << "lenghthhhh " << file_length << endl;
+      cout << "pointerrrrrrrrrrrrr " << pointer << endl;
+      analysis_file.seekg(pointer, ios::beg);
+      segment_size = file_length - pointer;
+      cout << "ganssjwjsdw" << segment_size << endl;
+    }
+
+    cout << "model name " << model_name << endl;
+    // cout << segment_size << position << endl;
+
     string segment_text;
 
+    char ch;
     for (int i=0; i < segment_size; i++) {
-      char ch;
       analysis_file.get(ch);
-      analysis_file.seekg(pointer+i, ios::beg);
-
       segment_text += ch;
     }
 
-    
-    cout << "segmento " << segment_text << endl;
+    cout << segment_text << endl;
+
     output_file << "[ " << model_name << " ] Segment [" << pointer << "-" << position << "] -> " << segment_text << endl;
 
-
-
     /* Start of the next segment */
-    pointer = ++position;
+    pointer = position;
     // analysis_file.seekg(pointer, ios::end);
+
+    i++;
 
   }
 
@@ -178,6 +192,8 @@ vector<tuple<int,string>> perform_locate_lang(string filePath, list<CopyModel> m
 
     window = window.substr(1, k - 1);
   }
+
+  lang_segment_positions.push_back( tuple<int,string>(pointer, current_model_lang) );
 
   return lang_segment_positions;
 
