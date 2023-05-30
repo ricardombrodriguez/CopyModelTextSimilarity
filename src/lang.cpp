@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 
 	/* Create a copy model based on the given representation file (Ri) */
 	CopyModel cp(k, alpha, threshold);
-	cp.create_model(representation_filename);
+	cp.import_model(representation_filename);
 
 	cout << "Acabou o copy model" << endl;
 

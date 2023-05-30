@@ -112,6 +112,8 @@ public:
       file.get(next_character);
       file.seekg(++pointer, ios::beg); // Increments pointer for next iteration (sliding-window)
 
+      next_character = tolower(next_character);
+
       if (ignored_chars.find(next_character) != string::npos || last_ch == ' ' && next_character == last_ch)
       {
         next_character = last_ch;
@@ -143,6 +145,8 @@ public:
       file.get(next_character);
       file.seekg(++pointer, ios::beg); // Increments pointer for next iteration (sliding-window)
 
+      next_character = tolower(next_character);
+
       if (ignored_chars.find(next_character) != string::npos || last_ch == ' ' && next_character == last_ch)
       {
         next_character = last_ch;
@@ -170,6 +174,8 @@ public:
         file.seekg((*st).pointers.front(), ios::beg);
         file.get(predicted_character);
         file.seekg(pointer, ios::beg);
+
+        predicted_character = tolower(predicted_character);
 
         if (predicted_character == next_character)
         {
@@ -253,7 +259,7 @@ public:
     char next_character; // Next character (real one, for comparison)
     int pointer = 0;
 
-    float total_bits, entropy;
+    float total_bits;
 
     while (pointer < file_length)
     {
@@ -261,6 +267,8 @@ public:
 
       file.get(next_character);        // Get the unread character from the file
       file.seekg(++pointer, ios::beg); // Increments pointer for next iteration (sliding-window)
+
+      next_character = tolower(next_character);
 
       if (ignored_chars.find(next_character) != string::npos || last_ch == ' ' && next_character == last_ch)
       {
@@ -286,7 +294,7 @@ public:
         information = log2(pow(k, alphabet.size()));
       }
 
-      total_bits += information;
+      total_bits += information/k;
 
       if (max_bits > 0 && total_bits > max_bits) {
         return -1;
