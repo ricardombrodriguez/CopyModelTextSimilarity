@@ -1,0 +1,19 @@
+[ ./models/italian.txt ] Segment [0-6] -> aa vid
+[ ./models/swedish.txt ] Segment [7-8] -> a
+[ ./models/portuguese.txt ] Segment [9-25] -> lva o vento e he
+[ ./models/spanish.txt ] Segment [26-27] ->  
+[ ./models/english.txt ] Segment [28-42] -> os to the bake
+[ ./models/italian.txt ] Segment [43-44] -> r
+[ ./models/english.txt ] Segment [45-49] ->  e g
+[ ./models/italian.txt ] Segment [50-50] -> 
+[ ./models/spanish.txt ] Segment [51-62] -> uan mucho l
+[ ./models/english.txt ] Segment [63-64] -> o
+[ ./models/german.txt ] Segment [65-65] -> 
+[ ./models/dutch.txt ] Segment [66-66] -> 
+[ ./models/german.txt ] Segment [67-67] -> 
+[ ./models/english.txt ] Segment [68-68] -> 
+[ ./models/spanish.txt ] Segment [69-69] -> 
+[ ./models/italian.txt ] Segment [70-70] -> 
+[ ./models/portuguese.txt ] Segment [71-75] ->  ess
+[ ./models/finnish.txt ] Segment [76-76] -> 
+[ ./models/french.txt ] Segment [77-77] -> 

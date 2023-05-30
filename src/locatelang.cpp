@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <filesystem>
 #include <string>
 #include <getopt.h>
@@ -30,7 +31,72 @@ int open_file(ifstream &file, string filename)
   return file_length;
 }
 
-void perform_locate_lang(string filePath, list<CopyModel> models, int num_models, int k)
+void store_results(vector<tuple<int,string>> lang_segments, string analysis_filename)
+{
+
+  ifstream analysis_file;
+  analysis_file.open(analysis_filename);
+  if (!analysis_file.is_open())
+  {
+    cout << "[ERROR] Can't open file '" << analysis_filename << "'" << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  string output_filename = analysis_filename;
+  size_t pos = output_filename.find(".txt");
+  if (pos != string::npos) {
+    output_filename = output_filename.substr(0, pos) + "_result.txt";
+  }
+
+  ofstream output_file;
+  output_file.open(output_filename);
+
+  if (!output_file.is_open()) {
+    cout << "[ERROR] Can't write on file '" << output_filename << "'" << endl; 
+    exit(EXIT_FAILURE);
+  }
+
+
+  int pointer = 0;
+  char* segment;
+
+  // Accessing keys and values
+  for (const auto& segment_data : lang_segments) {
+
+    int position = get<0>(segment_data);
+    string model_name = get<1>(segment_data);
+    int segment_size = position - pointer;
+
+    string segment_text;
+
+    for (int i=0; i < segment_size; i++) {
+      char ch;
+      analysis_file.get(ch);
+      analysis_file.seekg(pointer+i, ios::beg);
+
+      segment_text += ch;
+    }
+
+    
+    cout << "segmento " << segment_text << endl;
+    output_file << "[ " << model_name << " ] Segment [" << pointer << "-" << position << "] -> " << segment_text << endl;
+
+
+
+    /* Start of the next segment */
+    pointer = ++position;
+    // analysis_file.seekg(pointer, ios::end);
+
+  }
+
+  analysis_file.close(); 
+  output_file.close();
+
+  cout << "File written successfully." << endl;
+
+}
+
+vector<tuple<int,string>> perform_locate_lang(string filePath, list<CopyModel> models, int num_models, int k)
 {
 
   /* Open file pointer (or exit if there's an error) */
@@ -40,8 +106,10 @@ void perform_locate_lang(string filePath, list<CopyModel> models, int num_models
   string window;       // Vector that stores all the file characters, in order to retrieve the next character after a sequence, given the position
   char next_character; // Next character
   int pointer = 0;
-  string current_model;    // String that stores the current model filename 
+  string last_model_lang;
+  string current_model_lang;
   vector<tuple<int,string>> lang_segment_positions;    // Stores the position and the language of each segment
+  unordered_map<string, sequence_possibilities> model_map;
 
   string ignored_chars = {
       '.', ',', ';', '!', '?', '*', '(', ')', '[', ']', '/', '-', '"', ':', '\\', '\n', '\t',
@@ -74,32 +142,45 @@ void perform_locate_lang(string filePath, list<CopyModel> models, int num_models
     float best_model_bits = 10e10;
     float total_bits;
 
-    CopyModel *model = nullptr;
+    /* Can't find sequence in current model, search the sequence in other models */
+    if (model_map.find(window) == model_map.end())
+    {
 
-    for (CopyModel model: models) {
-  
-      /* Get the total number of bits for the window, given the model */
-      total_bits = model.process_segment(window);
-
-      /* Update if the model is better*/
-      if (total_bits < best_model_bits) {
-        best_model_bits = total_bits;
-        best_model_filename = model.filename;
+      if (!model_map.empty()) {
+        last_model_lang = current_model_lang;
       }
 
-      cout << "Current model for sequence '" << window << "': " << current_model << " with " << best_model_bits << " bits" << endl;
+      for (CopyModel model: models) {
+    
+        /* Get the total number of bits for the window, given the model */
+        total_bits = model.process_segment(window);
+
+        /* Update if the model is better*/
+        if (total_bits < best_model_bits) {
+          best_model_bits = total_bits;
+          current_model_lang = model.filename;
+          model_map = model.get_sequences_data();
+        }
+      }
+
+      if (last_model_lang.empty()) {
+        last_model_lang = current_model_lang;
+      }
+
+      /* Check if there was a change in the language model and register it */
+      if (!model_map.empty() && (last_model_lang != current_model_lang) ) {
+        lang_segment_positions.push_back( tuple<int,string>(pointer, last_model_lang) );
+      }
+      
     }
 
-    /* Check if there was a change in the language model and register it */
-    if (current_model.empty() || best_model_filename != current_model) {
-      current_model = best_model_filename;
-      lang_segment_positions.push_back( tuple<int,string>(pointer,current_model) );
-    }
-
-    cout << "Current model for sequence '" << window << "': " << current_model << endl;
+    cout << "Current model for sequence '" << window << "': " << current_model_lang << endl;
 
     window = window.substr(1, k - 1);
   }
+
+  return lang_segment_positions;
+
 }
 
 int main(int argc, char **argv)
@@ -150,6 +231,8 @@ int main(int argc, char **argv)
       CopyModel cp(0, 0, 0);
       cp.import_model(filePath);
       models.push_back(cp);
+      cp.filename = filePath;
+      cout << cp.filename << endl;
     }
   }
 
@@ -159,7 +242,9 @@ int main(int argc, char **argv)
   /* Execution time start */
   time_t exec_time = time(nullptr);
 
-  perform_locate_lang(analysis_filename, models, num_models, k);
+  vector<tuple<int,string>> lang_segments = perform_locate_lang(analysis_filename, models, num_models, k);
+
+  store_results(lang_segments, analysis_filename);
 
   /* Execution time end */
   exec_time = time(nullptr) - exec_time;

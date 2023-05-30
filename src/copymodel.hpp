@@ -59,6 +59,10 @@ public:
     this->threshold = threshold;
   }
 
+  unordered_map<string, sequence_possibilities> get_sequences_data() {
+    return this->sequences_data;
+  }
+
   int open_file(ifstream &file, string filename)
   {
     /* Open file pointer (or exit if there's an error) */
